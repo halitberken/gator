@@ -1,13 +1,17 @@
 package main
 
 import (
+	"database/sql"
 	"log"
 	"os"
 
 	"github.com/halitberken/gator/internal/config"
+	"github.com/halitberken/gator/internal/database"
+	_ "github.com/lib/pq"
 )
 
 type state struct {
+	db     *database.Queries
 	config *config.Config
 }
 
@@ -16,24 +20,34 @@ func main() {
 	if err != nil {
 		log.Fatalf("error reading config: %v", err)
 	}
-	s := state{
+
+	db, err := sql.Open("postgres", cfg.DBURL)
+	if err != nil {
+		log.Fatalf("error connecting to db: %v", err)
+	}
+	defer db.Close()
+	dbQueries := database.New(db)
+
+	programState := &state{
+		db:     dbQueries,
 		config: &cfg,
 	}
+
 	cmds := commands{
 		commands: make(map[string]func(*state, command) error),
 	}
 	cmds.register("login", handlerLogin)
+	cmds.register("register", handlerRegister)
+
 	if len(os.Args) < 2 {
-		log.Fatal("Not enough arguments")
-		os.Exit(1)
+		log.Fatal("Usage: cli <command> [args...]")
 	}
-	cmd := command{
-		name: os.Args[1],
-		args: os.Args[2:],
-	}
-	err = cmds.run(&s, cmd)
+
+	cmdName := os.Args[1]
+	cmdArgs := os.Args[2:]
+
+	err = cmds.run(programState, command{Name: cmdName, Args: cmdArgs})
 	if err != nil {
-		log.Fatalf("Error: %v", err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 }

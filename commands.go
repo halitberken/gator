@@ -3,8 +3,8 @@ package main
 import "fmt"
 
 type command struct {
-	name string
-	args []string
+	Name string
+	Args []string
 }
 
 type commands struct {
@@ -12,9 +12,9 @@ type commands struct {
 }
 
 func (c *commands) run(s *state, cmd command) error {
-	handler, ok := c.commands[cmd.name]
+	handler, ok := c.commands[cmd.Name]
 	if !ok {
-		return fmt.Errorf("There is no command like that")
+		return fmt.Errorf("there is no command like that")
 	}
 	return handler(s, cmd)
 }
